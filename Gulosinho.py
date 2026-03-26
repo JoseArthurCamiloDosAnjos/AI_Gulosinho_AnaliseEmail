@@ -23,9 +23,23 @@ def limpar_texto(texto):
     texto = re.sub(r"<.*?>","", texto)      #remove Html
     texto = re.sub(r"[^\w\s]", "", texto)   #remove pontuação
     texto = re.sub(r"\b\w*3d\w*\b", "", texto)#remove frazes quebradas
-    texto = re.sub(r"\b(helvetica|nbsp|amp|font|table)\b", "", texto)
+    texto = re.sub(r"\b(td|tr|table|div|span|font|email|list|roman)\b", "", texto)  
+    texto = re.sub(r"\b\w{1,2}\b", "", texto) #remove palavras curtas
     return texto
 
+def sistema_de_feedback(texto, predicao_modelo):
+    print(f"A frase testada foi: '{texto}'")
+    print(f"O modelo classificou como: {'SPAM' if predicao_modelo == 1 else 'HAM'}")
+    correto = input("A classificação está correta? (s/n): ").strip().lower()
+    if correto == 'n':
+        real_label = 0 if predicao_modelo == 1 else 1  
+        pasta = "dados/ham" if real_label == 0 else "dados/spam"
+        nome_arquivo = f"feedback_{len(os.listdir(pasta))}.txt"
+        with open(os.path.join(pasta, nome_arquivo), "w") as f:
+            f.write(texto)
+        print("Feedback registrado. Obrigado!")
+        treinar_modelo()  # Re-treina o modelo com os novos dados
+        
 def carregar_pasta(caminho, label):
     for arquivo in os.listdir(caminho):
         caminho_arquivo = os.path.join(caminho, arquivo)
@@ -47,41 +61,30 @@ def carregar_pasta(caminho, label):
 carregar_pasta("dados/spam", 1)
 carregar_pasta("dados/ham",0)
 
-# Vetorização
-vectorizer = TfidfVectorizer(ngram_range=(1,2), max_features=5000, min_df=2, stop_words="english")
-X = vectorizer.fit_transform(emails)
 
-# Divisão
-X_train, X_test, y_train, y_test = train_test_split(X, labels, test_size = 0.3, stratify=labels, random_state=42)
+def treinar_modelo():
+    global emails, labels, vectorizer, model
+    emails, labels = [], [] # Limpa para recarregar do zero
+    
+    carregar_pasta("dados/spam", 1)
+    carregar_pasta("dados/ham", 0)
+    
+    vectorizer = TfidfVectorizer(ngram_range=(1,2), max_features=5000, stop_words="english")
+    X = vectorizer.fit_transform(emails)
+    
+    model = MultinomialNB()
+    model.fit(X, labels)
+    print("\n[Reforço] Modelo atualizado com os novos dados!")
+    
+treinar_modelo() # Treino inicial
 
-# Modelo
-model = MultinomialNB()
-model.fit(X_train, y_train)
+frase_teste = "meeting confirmed tomorrow"
+# 1. Faz a predição
+predicao = model.predict(vectorizer.transform([frase_teste]))[0]
 
-#avaliação 
-pred = model.predict(X_test)
-print(classification_report(y_test, pred, zero_division=0))
-#teste
-teste = [
-    "ganhe dinheiro agora com essa oferta exclusiva clique aqui",
-    "reunião confirmada amanhã",
-    "clique aqui urgente",
-    "segue relatório em anexo",
-    "oferta exclusiva para clientes",
-    "documento importante clique aqui"
-    ]
-for t in teste:
-    print(t, "->", model.predict(vectorizer.transform([t]))[0])
-print(model.predict(vectorizer.transform(teste)))
+# 2. Chama o feedback passando a frase e o que o modelo achou
+sistema_de_feedback(frase_teste, predicao)
 
-print("\nEXEMPLO LIMPO:")
-print(emails[0][:500])
-
-feature_names = vectorizer.get_feature_names_out()
-probs = model.feature_log_prob_
-
-top_spam = probs[1].argsort()[-10:]
-top_ham = probs[0].argsort()[-10:]
-
-print("SPAM:", [feature_names[i] for i in top_spam])
-print("HAM:", [feature_names[i] for i in top_ham])
+# 3. Se você marcou 'n' no feedback, ele salvou o arquivo. 
+# Agora você chama o treino de novo para ele aprender:
+treinar_modelo()

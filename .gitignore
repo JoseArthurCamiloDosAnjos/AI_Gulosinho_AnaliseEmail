@@ -1,1 +1,14 @@
 Dados/Dataset/
+# Ambiente Virtual
+venv/
+.venv/
+env/
+bin/
+include/
+lib/
+share/
+
+# Arquivos do Python
+__pycache__/
+*.py[cod]
+*$py.class
