@@ -16,17 +16,7 @@ labels = []
 
 
     
-def responder(texto, pred):
-    if pred == 1:
-        if "money" in texto or "ganhe" in texto:
-            return "⚠️ Promessas de dinheiro fácil são comuns em spam."
-        elif "click" in texto:
-            return "⚠️ Links suspeitos são um forte sinal de spam."
-        else:
-            return "⚠️ Esse email tem padrões típicos de spam."
-    else:
-        return "✅ Email parece legítimo."
-    
+
 def traduzir(texto):
     return GoogleTranslator(source="auto", target="en").translate(texto)
    
