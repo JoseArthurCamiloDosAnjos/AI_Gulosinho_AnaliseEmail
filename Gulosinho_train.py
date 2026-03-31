@@ -41,13 +41,14 @@ def limpar_texto(texto):
     return texto
 
 def sistema_de_feedback(texto, predicao_modelo):
-    print(f"A frase testada foi: '{traduzir_Portugues(texto)}'")
+    print("---------------------------------------------------")
+    print(f"\033[1;34m A frase testada foi: \033[0m '{traduzir_Portugues(texto)}'")
     print(f"O modelo  {'SPAM' if predicao_modelo == 1 else 'HAM'}")
     
     correto = input("A classificação está correta? (s/n): ").strip().lower()
     
     if correto == 'n':
-        real = input("Digite o correto (0=HAM, 1=SPAM): ")
+        real = input("\033[1;34m Digite o correto \033[0m(0=HAM, 1=SPAM): ")
         real_label = int(real)
         
         pasta = "dados/ham" if real_label == 0 else "dados/spam"
@@ -93,9 +94,10 @@ def treinar_modelo():
     
     model = MultinomialNB()
     model.fit(X, labels)
-    print("\n[Reforço] Modelo atualizado com os novos dados!")
+    
     
 def main():
+ while True:
     treinar_modelo() # Treino inicial
     Texto = input("Digite um email para testar: ")
     frase_teste = traduzir(Texto)
@@ -114,6 +116,14 @@ def main():
     
     joblib.dump(model, "modelo/modelo.pkl")
     joblib.dump(vectorizer, "modelo/vectorizer.pkl")
+
+    resposta = input("Quer mandar outro email? (s/n): ").strip().lower()
+
+    if resposta != "s":
+        print("\033[1;32m \n[Reforço] Modelo atualizado com os novos dados! \033")
+        print("\033[1;31mTreinamento Finalizado \033[0")
+        break
+
 
 if __name__ == "__main__":
     main()
